@@ -1,13 +1,12 @@
 version: 0.2
 phases:
-  pre_build:
-      commands:
-        - cd src
-        - npm install
   install:
     runtime-versions:
       nodejs: 10
+  build:
     commands:
+      - cd src
+      - npm install
       - cd ..
   post_build:
     commands:
