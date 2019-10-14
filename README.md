@@ -7,7 +7,7 @@ This is a sample template for api-gateway-test - Below is a brief explanation of
 ├── README.MD                   <-- This instructions file
 ├── src                         <-- Source code for a lambda function
 │   └── integration.js          <-- Lambda function code
-│   └── integration.js          <-- Lambda custom authorizer code
+│   └── authorizer.js           <-- Lambda custom authorizer code
 │   └── package.json            <-- NodeJS dependencies and scripts
 ├── template.yaml               <-- SAM template
 ├── swagger.yaml                <-- Swagger definition
