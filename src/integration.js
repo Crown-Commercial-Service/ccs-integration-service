@@ -31,7 +31,22 @@ exports.createITT = async (event, context) => {
     logEvent(event);
 
     return buildResponse(201, {
-      message: 'Invitation to tender created successfully.'
+      projectCode: 'string',
+      ittCode: 'string'
+    });
+  } catch (err) {
+    return buildResponse(401, {
+      message: err.message
+    });
+  }
+};
+
+exports.getTenderStatuses = async (event, context) => {
+  try {
+    return buildResponse(200, {
+      additionalProp1: 0,
+      additionalProp2: 0,
+      additionalProp3: 0
     });
   } catch (err) {
     return buildResponse(401, {
@@ -58,6 +73,9 @@ exports.deleteTender = async (event, context) => {
   try {
     logEvent(event);
 
+    if (event.pathParameters && event.pathParameters.id)
+      return deleteTender(event.pathParameters.id);
+
     return buildResponse(204);
   } catch (err) {
     return buildResponse(401, {
@@ -71,14 +89,21 @@ const getAllTenders = () => {
 };
 
 const getTenderById = id => {
-  let filteredTenders = tenders.filter(item => item.tender.id === id);
+  if (!id.isInteger())
+    return buildResponse(400, { message: 'Invalid ID supplied' });
 
-  if (filteredTenders.length > 0)
-    return buildResponse(200, filteredTenders.pop());
-
-  return buildResponse(404, {
-    message: 'Tender not found.'
+  return buildResponse(200, {
+    id,
+    description: 'Tender - Laptops for Schools',
+    status: 'Invitation to Tender'
   });
+};
+
+const deleteTender = id => {
+  if (!id.isInteger())
+    return buildResponse(400, { message: 'Invalid ID supplied' });
+
+  return buildResponse(204);
 };
 
 const buildResponse = (

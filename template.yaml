@@ -98,21 +98,21 @@ Resources:
       FunctionName: !Ref CreateITTFunction
       Principal: apigateway.amazonaws.com
 
-  GetTenderStatusFunction:
+  GetTenderStatusesFunction:
     Properties:
       CodeUri: src/
-      Handler: integration.getTenders
+      Handler: integration.getTenderStatuses
       Runtime: nodejs10.x
     Type: AWS::Serverless::Function
 
-  GetTenderStatusLambdaPermission:
+  GetTenderStatusesLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
     - ServerlessRestAPI
-    - GetTenderStatusFunction
+    - GetTenderStatusesFunction
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref GetTenderStatusFunction
+      FunctionName: !Ref GetTenderStatusesFunction
       Principal: apigateway.amazonaws.com
 
   GetTenderByIdFunction:
