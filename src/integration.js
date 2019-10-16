@@ -74,7 +74,7 @@ exports.deleteTender = async (event, context) => {
     logEvent(event);
 
     if (event.pathParameters && event.pathParameters.id)
-      return deleteTender(event.pathParameters.id);
+      return deleteTender(parseInt(event.pathParameters.id));
 
     return buildResponse(204);
   } catch (err) {
