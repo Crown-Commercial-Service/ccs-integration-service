@@ -89,7 +89,7 @@ const getAllTenders = () => {
 };
 
 const getTenderById = id => {
-  if (!id.isInteger())
+  if (!Number.isInteger(id))
     return buildResponse(400, { message: 'Invalid ID supplied' });
 
   return buildResponse(200, {
@@ -100,7 +100,7 @@ const getTenderById = id => {
 };
 
 const deleteTender = id => {
-  if (!id.isInteger())
+  if (!Number.isInteger(id))
     return buildResponse(400, { message: 'Invalid ID supplied' });
 
   return buildResponse(204);
