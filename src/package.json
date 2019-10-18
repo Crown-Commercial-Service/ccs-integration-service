@@ -7,7 +7,9 @@
   "author": "SAM CLI",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.18.0"
+    "axios": "^0.18.0",
+    "easy-soap-request": "^3.1.0",
+    "xml2js": "^0.4.22"
   },
   "scripts": {
     "test": "mocha tests/unit/"
