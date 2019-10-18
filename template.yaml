@@ -86,6 +86,7 @@ Resources:
       CodeUri: src/
       Handler: integration.createITT
       Runtime: nodejs10.x
+      Timeout: 10
     Type: AWS::Serverless::Function
 
   CreateITTLambdaPermission:
