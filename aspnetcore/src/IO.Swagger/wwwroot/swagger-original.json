@@ -1,0 +1,444 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "title" : "Crown Commercial Service",
+    "description" : "This is the Crown Commercial Service API definition.\n",
+    "termsOfService" : "https://www.crowncommercial.gov.uk/",
+    "contact" : {
+      "email" : "api@crowncommercial.gov.uk"
+    },
+    "license" : {
+      "name" : "Open Government Licence 3.0",
+      "url" : "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
+    },
+    "version" : "0_5"
+  },
+  "externalDocs" : {
+    "description" : "Find out more about Crown Commercial Service",
+    "url" : "https://www.crowncommercial.gov.uk"
+  },
+  "servers" : [ {
+    "url" : "https://virtserver.swaggerhub.com/Crown-Commercial/crown-commercial-service/0_5",
+    "description" : "CCS API Automock (for SBX contexts)"
+  } ],
+  "tags" : [ {
+    "name" : "tender",
+    "description" : "An Invitation to Tender (ITT) as defined by CCS",
+    "externalDocs" : {
+      "description" : "CCS Tendering Process",
+      "url" : "https://www.gov.uk/government/publications/become-a-crown-commercial-service-supplier/becoming-a-supplier-through-the-crown-commercial-service-what-you-need-to-know#tendering-for-opportunities--how-it-works"
+    }
+  }, {
+    "name" : "itt",
+    "description" : "Another name for a tender"
+  }, {
+    "name" : "procurement",
+    "description" : "Procurement case"
+  }, {
+    "name" : "user",
+    "description" : "CCS user information, the owner of a procurement or an ITT, or both"
+  } ],
+  "paths" : {
+    "/tenders" : {
+      "post" : {
+        "tags" : [ "tender", "itt" ],
+        "summary" : "Create an invitiation to tender i.e. a sourcing event",
+        "description" : "Creates a CCS invitation to tender on the sourcing platform for a given procurement case.",
+        "operationId" : "createTender",
+        "requestBody" : {
+          "description" : "Created sourcing object",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Procurement"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "tender created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/inline_response_201"
+                }
+              }
+            }
+          },
+          "default" : {
+            "description" : "successful operation"
+          }
+        }
+      }
+    },
+    "/tenders/status" : {
+      "get" : {
+        "tags" : [ "tender" ],
+        "summary" : "Get tenders by status",
+        "description" : "Returns list of tenders for a given status",
+        "operationId" : "getTenders",
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "integer",
+                    "format" : "int32"
+                  },
+                  "x-content-type" : "application/json"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "api_key" : [ ]
+        } ]
+      }
+    },
+    "/tenders/{id}" : {
+      "get" : {
+        "tags" : [ "tender" ],
+        "summary" : "Find a tender by ID",
+        "description" : "For valid response try integer IDs with value >= 1 and <= 10.\\ \\ Other values will generated exceptions",
+        "operationId" : "getTenderById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "ID of the tender that needs to be fetched",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "maximum" : 10.0,
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tender"
+                }
+              },
+              "application/xml" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tender"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Tender not found"
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "tender" ],
+        "summary" : "(Soft) Delete tender by ID",
+        "description" : "For valid response try integer IDs with positive integer value.\\ \\ Negative or non-integer values will generate API errors",
+        "operationId" : "deleteTender",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "ID of the tender that needs to be deleted",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Tender not found"
+          }
+        }
+      }
+    },
+    "/user/{username}" : {
+      "get" : {
+        "tags" : [ "user" ],
+        "summary" : "Get user by user name",
+        "operationId" : "getUserByName",
+        "parameters" : [ {
+          "name" : "username",
+          "in" : "path",
+          "description" : "The name that needs to be fetched. Use user1 for testing.",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/User"
+                }
+              },
+              "application/xml" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Invalid username supplied"
+          },
+          "404" : {
+            "description" : "User not found"
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "Tender" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 8
+          },
+          "description" : {
+            "type" : "string",
+            "example" : "Tender - Laptops for Schools"
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "Invitation to Tender Sourcing Event Status",
+            "format" : "int32"
+          },
+          "ittOwner" : {
+            "$ref" : "#/components/schemas/User"
+          }
+        },
+        "example" : {
+          "description" : "Tender - Laptops for Schools",
+          "id" : 8,
+          "ittOwner" : {
+            "firstName" : "joe",
+            "lastName" : "bloggs",
+            "userStatus" : 6,
+            "phone" : "phone",
+            "id" : 123456,
+            "email" : "joe.bloggs@crowncommercial.gov.uk",
+            "username" : "joe.bloggs"
+          },
+          "status" : 0
+        },
+        "xml" : {
+          "name" : "Tender"
+        }
+      },
+      "Procurement" : {
+        "required" : [ "commercialAgreement", "commercialAgreementLot", "ittPlannedEndDate", "ittPlannedStartDate", "reference", "route", "subject" ],
+        "type" : "object",
+        "properties" : {
+          "reference" : {
+            "type" : "string",
+            "description" : "The primary identifier of the procurement case",
+            "example" : "AB123456"
+          },
+          "subject" : {
+            "type" : "string",
+            "description" : "Title of the procurement case",
+            "example" : "Laptops for School"
+          },
+          "route" : {
+            "type" : "string",
+            "description" : "Label indicating the process the procurement case must follow",
+            "example" : "Call Off (Competition)",
+            "enum" : [ "Call Off (Competition)", "Call Off (Direct Award)", "Open Market", "Single Tender Action" ]
+          },
+          "ittPlannedStartDate" : {
+            "type" : "string",
+            "description" : "The date this procurement is planned to go out to tender",
+            "format" : "date"
+          },
+          "ittPlannedEndDate" : {
+            "type" : "string",
+            "description" : "The date the tender is planned or required to close",
+            "format" : "date"
+          },
+          "organisation" : {
+            "type" : "string",
+            "description" : "The organisation requesting the procurement",
+            "example" : "Bristol City Council"
+          },
+          "commercialAgreement" : {
+            "type" : "string",
+            "description" : "Also known as a framework"
+          },
+          "commercialAgreementLot" : {
+            "type" : "string",
+            "description" : "Also known as a framework lot"
+          },
+          "CommonAreaofSpendCategory" : {
+            "$ref" : "#/components/schemas/CommonAreaofSpendCategory"
+          },
+          "procurementOwner" : {
+            "$ref" : "#/components/schemas/User"
+          }
+        },
+        "xml" : {
+          "name" : "Procurement"
+        }
+      },
+      "CommonAreaofSpendCategory" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "xml" : {
+          "name" : "CommonAreaofSpendCategory"
+        }
+      },
+      "User" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 123456
+          },
+          "username" : {
+            "type" : "string",
+            "example" : "joe.bloggs"
+          },
+          "firstName" : {
+            "type" : "string",
+            "example" : "joe"
+          },
+          "lastName" : {
+            "type" : "string",
+            "example" : "bloggs"
+          },
+          "email" : {
+            "type" : "string",
+            "example" : "joe.bloggs@crowncommercial.gov.uk"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "userStatus" : {
+            "type" : "integer",
+            "description" : "User Status",
+            "format" : "int32"
+          }
+        },
+        "example" : {
+          "firstName" : "joe",
+          "lastName" : "bloggs",
+          "userStatus" : 6,
+          "phone" : "phone",
+          "id" : 123456,
+          "email" : "joe.bloggs@crowncommercial.gov.uk",
+          "username" : "joe.bloggs"
+        },
+        "xml" : {
+          "name" : "User"
+        }
+      },
+      "Tag" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "description" : "Included for future revisions",
+        "xml" : {
+          "name" : "Tag"
+        }
+      },
+      "ApiResponse" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "description" : "Included for future revisions"
+      },
+      "inline_response_201" : {
+        "type" : "object",
+        "properties" : {
+          "projectCode" : {
+            "type" : "string",
+            "description" : "project code (project id)"
+          },
+          "ittCode" : {
+            "type" : "string",
+            "description" : "the itt code (tender id)"
+          }
+        },
+        "example" : {
+          "projectCode" : "projectCode",
+          "ittCode" : "ittCode"
+        }
+      }
+    },
+    "securitySchemes" : {
+      "ccs_auth" : {
+        "type" : "oauth2",
+        "flows" : {
+          "implicit" : {
+            "authorizationUrl" : "http://TBD.crowncommercial.gov.uk/authorise",
+            "scopes" : {
+              "write:tender" : "create a new sourcing event",
+              "read:tender" : "read information about a tender (including polling for updates)"
+            }
+          }
+        }
+      },
+      "api_key" : {
+        "type" : "apiKey",
+        "name" : "api_key",
+        "in" : "header"
+      }
+    }
+  }
+}
