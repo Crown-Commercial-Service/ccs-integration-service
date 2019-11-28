@@ -22,12 +22,9 @@ exports.handler = async (event, context, callback) => {
     );
 
     console.log(`Event: ${JSON.stringify(event)}`);
-    console.log(`Env: ${JSON.stringify(process.env)}`);
 
     const authHeader = event.authorizationToken;
     const { COGNITO_CLIENT_ID } = process.env;
-
-    console.log(`Authorization header: ${authHeader}`);
 
     if (!authHeader) return callback('Unauthorized');
 

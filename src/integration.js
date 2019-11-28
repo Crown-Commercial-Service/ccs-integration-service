@@ -1,11 +1,13 @@
 const xml2js = require('xml2js');
-const parser = new xml2js.Parser({
-  attrkey: '$'
-});
-const soapRequest = require('easy-soap-request');
+const axios = require('axios');
+const multipartRawParser = require('multipart-raw-parser/build/parse');
 
 const username = process.env.JAGGAER_AUTH_USERNAME;
 const password = process.env.JAGGAER_AUTH_PASSWORD;
+
+const parser = new xml2js.Parser({
+  attrkey: '$'
+});
 
 const headers = {
   'Content-Type': 'text/xml;charset=UTF-8',
@@ -45,12 +47,14 @@ let tenders = [
   }
 ];
 
-exports.createITT = async (event, context) => {
+exports.createITT = async (event, context, callback) => {
   try {
-    console.log('Received event:', JSON.stringify(event, null, 2));
+    logEvent(event);
 
     // Project Request
     let url = baseUrl + '/Project';
+
+    const { reference, subject } = event.body;
 
     const builder = new xml2js.Builder();
 
@@ -67,7 +71,7 @@ exports.createITT = async (event, context) => {
             operationCode: 'CREATE',
             project: {
               tender: {
-                title: 'Test Project 123',
+                title: `${reference} - ${subject}`,
                 buyerCompany: {
                   id: 51435
                 },
@@ -79,16 +83,18 @@ exports.createITT = async (event, context) => {
       }
     });
 
-    const projectResponseBody = await makeJaggaerRequest(
-      projectXml,
-      url,
+    const projResponse = await axios.default.post(url, projectXml, {
       headers
+    });
+
+    const projResponseData = projResponse.data;
+
+    const projMultipartDataArray = multipartRawParser.parse(
+      projResponseData,
+      projResponse.headers['content-type']
     );
 
-    // const projJson = projectResponseBody.response.body;
-    const projJson = parseXMLAsJson(projectResponseBody.response.body)[
-      'soapenv:Envelope'
-    ]['soapenv:Body'][0]['ns1:importProjectResponseMSG'][0];
+    const projJson = parseXMLAsJson(projMultipartDataArray[1].value);
 
     // Rfx Request
     url = baseUrl + '/Rfx';
@@ -107,17 +113,10 @@ exports.createITT = async (event, context) => {
             rfx: {
               rfxSetting: {
                 rfiFlag: 0,
-                shortDescription: 'ITT Short Description',
-                longDescription: 'ITT Long Description',
+                shortDescription: subject,
                 buyerCompany: {
                   id: 51435
                 },
-                value: 150000,
-                valueCurrency: 'GBP',
-                bidsCurrency: 'GBP',
-                qualEnvStatus: 0,
-                techEnvStatus: 0,
-                commEnvStatus: 1,
                 rfxType: 'STANDARD_ITT',
                 autoCreateTender: 1
               }
@@ -127,94 +126,91 @@ exports.createITT = async (event, context) => {
       }
     });
 
-    const rfxResponseBody = await makeJaggaerRequest(rfxXml, url, headers);
-    const rfxJson = parseXMLAsJson(rfxResponseBody.response.body)[
-      'soapenv:Envelope'
-    ]['soapenv:Body'][0]['ns1:importRfxResponseMsg'][0];
+    const rfxResponse = await axios.default.post(url, rfxXml, {
+      headers
+    });
 
-    // Return response
-    const response = {
-      headers: {
-        'Access-Control-Allow-Origin': '*'
-      },
+    const rfxResponseData = rfxResponse.data;
 
-      body: {
-        projectCode: projJson.tenderReferenceCode[0],
-        ittCode: rfxJson.rfxReferenceCode[0]
-      },
-      statusCode: 200
-    };
+    const rfxMultipartDataArray = multipartRawParser.parse(
+      rfxResponseData,
+      rfxResponse.headers['content-type']
+    );
 
-    console.log(response);
+    const rfxJson = parseXMLAsJson(rfxMultipartDataArray[1].value);
 
-    return response;
+    const projMsgObj = getResponseMsg(projJson);
+    const rfxMsgObj = getResponseMsg(rfxJson);
+
+    callback(
+      null,
+      buildResponse(200, {
+        projectCode: projMsgObj.tenderReferenceCode[0],
+        ittCode: rfxMsgObj.rfxReferenceCode[0]
+      })
+    );
   } catch (error) {
-    console.error(error);
-    return error;
+    callback(error.message);
   }
 };
 
-exports.getTenderStatuses = async (event, context) => {
+exports.getTenderStatuses = async (event, context, callback) => {
   try {
-    return buildResponse(200, {
-      additionalProp1: 0,
-      additionalProp2: 0,
-      additionalProp3: 0
-    });
-  } catch (err) {
-    return buildResponse(401, {
-      message: err.message
-    });
+    callback(
+      null,
+      buildResponse(200, {
+        additionalProp1: 0,
+        additionalProp2: 0,
+        additionalProp3: 0
+      })
+    );
+  } catch (error) {
+    callback(error.message);
   }
 };
 
-exports.getTenders = async (event, context) => {
+exports.getTenders = async (event, context, callback) => {
   try {
     logEvent(event);
 
-    return event.pathParameters && event.pathParameters.id
-      ? getTenderById(parseInt(event.pathParameters.id))
-      : getAllTenders();
-  } catch (err) {
-    return buildResponse(401, {
-      message: err.message
-    });
+    const response =
+      event.pathParameters && event.pathParameters.id
+        ? getTenderById(+event.pathParameters.id)
+        : getAllTenders();
+
+    callback(null, buildResponse(200, response));
+  } catch (error) {
+    callback(error.message);
   }
 };
 
-exports.deleteTender = async (event, context) => {
+exports.deleteTender = async (event, context, callback) => {
   try {
     logEvent(event);
 
     if (event.pathParameters && event.pathParameters.id)
-      return deleteTender(parseInt(event.pathParameters.id));
-
-    return buildResponse(204);
-  } catch (err) {
-    return buildResponse(401, {
-      message: err.message
-    });
+      callback(null, deleteTender(+event.pathParameters.id));
+  } catch (error) {
+    callback(error.message);
   }
 };
 
 const getAllTenders = () => {
-  return buildResponse(200, tenders);
+  return { tenders };
 };
 
 const getTenderById = id => {
-  if (!Number.isInteger(id))
-    return buildResponse(400, { message: 'Invalid ID supplied' });
+  if (!Number.isInteger(id)) return Error('Invalid ID supplied');
 
-  return buildResponse(200, {
+  return {
     id,
     description: 'Tender - Laptops for Schools',
     status: 'Invitation to Tender'
-  });
+  };
 };
 
 const deleteTender = id => {
-  if (!Number.isInteger(id))
-    return buildResponse(400, { message: 'Invalid ID supplied' });
+  if (!Number.isInteger(id)) return Error('Invalid ID supplied');
 
   return buildResponse(204);
 };
@@ -240,36 +236,25 @@ const logEvent = event => {
   console.log('Received event:', JSON.stringify(event, null, 2));
 };
 
-async function makeJaggaerRequest(xml, url, headers, timeout = 10000) {
-  return await soapRequest({
-    url,
-    headers,
-    xml,
-    timeout
-  });
-}
+const parseXMLAsJson = xml => {
+  let response;
 
-function parseXMLAsJson(
-  xml,
-  startPattern = '<soapenv:Envelope',
-  endPattern = '</soapenv:Envelope>'
-) {
-  const trimmedXml = xml
-    .substring(
-      xml.indexOf(startPattern),
-      xml.indexOf(endPattern) + endPattern.length
-    )
-    .trim();
-  let json;
-
-  parser.parseString(trimmedXml, (error, result) => {
+  parser.parseString(xml, (error, result) => {
     if (!error) {
-      json = result;
+      response = result;
     } else {
-      console.error(error);
-      json = error;
+      response = Error(error.message);
     }
   });
 
-  return json;
-}
+  return response;
+};
+
+const getResponseMsg = soap => {
+  // Iterate through keys finding the required response
+  const soapEnvelope = soap[Object.keys(soap)[0]];
+  const soapBody = soapEnvelope[Object.keys(soapEnvelope)[1]];
+  const soapResponseArray = soapBody[Object.keys(soapBody)[0]];
+
+  return soapResponseArray[Object.keys(soapResponseArray)[0]][0];
+};

@@ -26,6 +26,14 @@ Parameters:
     Description: 'Client Id for the Cognito User Pool used with the API.'
     Type: AWS::SSM::Parameter::Value<String>
     Default: '/esource/cognito/COGNITO_CLIENT_ID'
+  JaggaerAuthUsername:
+    Description: 'Username for accessing the Jaggaer integration.'
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/esource/jaggaer/JAGGAER_AUTH_USERNAME'
+  JaggaerAuthPassword:
+    Description: 'Password for accessing the Jaggaer integration.'
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: '/esource/jaggaer/JAGGAER_AUTH_PASSWORD'
 
 Resources:
   ApiGatewayAuthorizerRole:
@@ -58,7 +66,7 @@ Resources:
       Handler: authorizer.handler
       Role:
         Fn::Sub: ${CustomAuthorizerFunctionRole.Arn}
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Environment:
         Variables:
           COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
@@ -87,8 +95,12 @@ Resources:
       Handler: integration.createITT
       Runtime: nodejs10.x
       Timeout: 10
+      Environment:
+        Variables:
+          JAGGAER_AUTH_USERNAME: !Ref JaggaerAuthUsername
+          JAGGAER_AUTH_PASSWORD: !Ref JaggaerAuthPassword
     Type: AWS::Serverless::Function
-
+    
   CreateITTLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
