@@ -54,9 +54,6 @@ exports.createITT = async (event, context, callback) => {
     // Project Request
     let url = baseUrl + '/Project';
 
-    if (!event.body.reference || !event.body.subject)
-      callback('Subject and reference required!');
-
     const { reference, subject } = JSON.parse(event.body);
 
     const builder = new xml2js.Builder();
