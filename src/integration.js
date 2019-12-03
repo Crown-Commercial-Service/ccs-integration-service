@@ -144,7 +144,7 @@ exports.createITT = async (event, context, callback) => {
 
     callback(
       null,
-      buildResponse(200, {
+      buildResponse(201, {
         projectCode: projMsgObj.tenderReferenceCode[0],
         ittCode: rfxMsgObj.rfxReferenceCode[0]
       })
