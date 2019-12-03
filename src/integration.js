@@ -54,7 +54,12 @@ exports.createITT = async (event, context, callback) => {
     // Project Request
     let url = baseUrl + '/Project';
 
-    const { reference, subject } = JSON.parse(event.body);
+    const {
+      reference,
+      subject,
+      ittPlannedStartDate,
+      ittPlannedEndDate
+    } = JSON.parse(event.body);
 
     const builder = new xml2js.Builder();
 
@@ -118,7 +123,9 @@ exports.createITT = async (event, context, callback) => {
                   id: 51435
                 },
                 rfxType: 'STANDARD_ITT',
-                autoCreateTender: 1
+                autoCreateTender: 1,
+                publishDate: ittPlannedStartDate,
+                closeDate: ittPlannedEndDate
               }
             }
           }
