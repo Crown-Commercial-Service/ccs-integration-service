@@ -94,7 +94,7 @@ Resources:
       CodeUri: src/
       Handler: integration.createITT
       Runtime: nodejs10.x
-      Timeout: 10
+      Timeout: 20
       Environment:
         Variables:
           JAGGAER_AUTH_USERNAME: !Ref JaggaerAuthUsername
