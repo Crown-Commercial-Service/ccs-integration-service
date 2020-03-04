@@ -17,7 +17,7 @@ const headers = {
 };
 
 const baseUrl =
-  'https://crowncommercialservice-ws01-prep.bravosolution.co.uk/esop/common-host/services';
+  'https://crowncommercialservice-ws01-prep.bravosolution.co.uk/esop/jint/services';
 
 let tenders = [
   {
@@ -54,11 +54,14 @@ exports.createITT = async (event, context, callback) => {
     // Project Request
     let url = baseUrl + '/Project';
 
+    const buyerCompanyId = 51435;
+
     const {
       reference,
       subject,
       ittPlannedStartDate,
-      ittPlannedEndDate
+      ittPlannedEndDate,
+      route
     } = JSON.parse(event.body);
 
     const builder = new xml2js.Builder();
@@ -78,7 +81,7 @@ exports.createITT = async (event, context, callback) => {
               tender: {
                 title: `${reference} - ${subject}`,
                 buyerCompany: {
-                  id: 51435
+                  id: buyerCompanyId
                 },
                 projectType: 'CCS_PROJ'
               }
@@ -88,11 +91,17 @@ exports.createITT = async (event, context, callback) => {
       }
     });
 
+    console.log('PROJECT XML: ', projectXml);
+
     const projResponse = await axios.default.post(url, projectXml, {
       headers
     });
 
+    console.log('projResponse: ', projResponse);
+
     const projResponseData = projResponse.data;
+
+    console.log('projResponseData: ', projResponseData);
 
     const projMultipartDataArray = multipartRawParser.parse(
       projResponseData,
@@ -100,6 +109,11 @@ exports.createITT = async (event, context, callback) => {
     );
 
     const projJson = parseXMLAsJson(projMultipartDataArray[1].value);
+    const projMsgObj = getResponseMsg(projJson);
+    const tenderReferenceCode = projMsgObj.tenderReferenceCode[0];
+
+    const newStartDate = new Date(ittPlannedStartDate).toISOString();
+    const newEndDate = new Date(ittPlannedEndDate).toISOString();
 
     // Rfx Request
     url = baseUrl + '/Rfx';
@@ -117,21 +131,43 @@ exports.createITT = async (event, context, callback) => {
             operationCode: 'CREATE',
             rfx: {
               rfxSetting: {
-                rfiFlag: 0,
+                rfiFlag: 1,
+                tenderReferenceCode,
                 shortDescription: subject,
                 buyerCompany: {
-                  id: 51435
+                  id: buyerCompanyId
                 },
-                rfxType: 'STANDARD_ITT',
-                autoCreateTender: 1,
-                publishDate: ittPlannedStartDate,
-                closeDate: ittPlannedEndDate
+                ownerUser: {
+                  login: 'sro-ccs'
+                },
+                publishDate: newStartDate,
+                closeDate: newEndDate,
+                rfxType: 'STANDARD_PQQ',
+                autoCreateTender: 0
+              },
+              rfxAdditionalInfoList: {
+                additionalInfo: {
+                  name: 'Procurement Route',
+                  type: 5, // Check whether fixed value or retrieved somewhere
+                  visibleToSupplier: 0,
+                  label: 'Procurement Route',
+                  values: {
+                    value: {
+                      $: {
+                        id: ''
+                      },
+                      _: route // _ specifies inner text of current element
+                    }
+                  }
+                }
               }
             }
           }
         }
       }
     });
+
+    console.log('RFX XML: ', rfxXml);
 
     const rfxResponse = await axios.default.post(url, rfxXml, {
       headers
@@ -145,19 +181,28 @@ exports.createITT = async (event, context, callback) => {
     );
 
     const rfxJson = parseXMLAsJson(rfxMultipartDataArray[1].value);
-
-    const projMsgObj = getResponseMsg(projJson);
     const rfxMsgObj = getResponseMsg(rfxJson);
 
-    callback(
-      null,
-      buildResponse(201, {
-        projectCode: projMsgObj.tenderReferenceCode[0],
-        ittCode: rfxMsgObj.rfxReferenceCode[0]
-      })
-    );
+    console.log('proj message json: ', projMsgObj);
+    console.log('rfx message json: ', rfxMsgObj);
+
+    const response = buildResponse(201, {
+      projectCode: tenderReferenceCode,
+      ittCode: rfxMsgObj.rfxReferenceCode[0]
+    });
+
+    console.log('RESPONSE OBJECT: ', response);
+
+    callback(null, response);
   } catch (error) {
-    callback(error.message);
+    console.error(error);
+    
+    const response = buildResponse(500, {
+      statusCode: 500,
+      error: error.message
+    });
+    
+    callback(null, response);
   }
 };
 
