@@ -27,58 +27,79 @@ This is a sample template for api-gateway-test - Below is a brief explanation of
 **Invoking function locally using a local sample payload**
 
 ```bash
-sam local invoke GetUsersFunction --no-event
+sam local invoke GetTenderStatusesFunction --no-event
 ```
  [Local invoke parameters](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-invoke.html)
  
 **Invoking function locally through local API Gateway**
 
+Firstly the correct npm packages used in the integration need to be installed in order to start the api locally.
+
+You can do this with a simple command ran in the /src directory:
+
+```bash
+npm install
+```
+
+You can then start the api locally with:
+
 ```bash
 sam local start-api
 ```
 
-If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/users`
+If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/tenders/status`
 
 **SAM CLI** is used to emulate both Lambda and API Gateway locally and uses our `template.yaml` to understand how to bootstrap this environment (runtime, where the source code is, etc.) - The following excerpt is what the CLI will read in order to initialize an API generate resources/methods from the swagger file.
 
 ```yaml
 ...
-  ServerlessRestAPI:
+ServerlessRestAPI:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: dev
+      StageName: default
       EndpointConfiguration: REGIONAL
       DefinitionBody:
         'Fn::Transform':
           Name: 'AWS::Include'
           Parameters:
             Location: './swagger.yaml'
+      Tags:
+          Application: ESOURCE_API
+          MAJOR_VERSION: !Ref MajorVersion
+          MINOR_VERSION: !Ref MinorVersion
+...
 ```
 
-The swagger file also contains where Lambda invocations will be called on each method/resource (GetUsersFunction maps to the function created in our template):
+The swagger file also contains where Lambda invocations will be called on each method/resource (GetTenderStatusesFunction maps to the function created in our template):
 
 ```yaml
 ...
-paths:
-  /users:
+/tenders/status:
     get:
-      description: Gets full list of users
-      produces:
-        - application/json
+      tags:
+        - tender
+      summary: Get tenders by status
+      description: Returns list of tenders for a given status
+      operationId: getTenders
       responses:
         '200':
-          description: The request was successful.
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/User'
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int32
       x-amazon-apigateway-integration:
-        uri: 
-            Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUsersFunction.Arn}/invocations
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        type: aws_proxy
-        ...
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTenderStatusesFunction.Arn}/invocations
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        type: "aws_proxy"
+      security:
+        - CustomAuthorizer: []
+...
 ```
 
 ## Packaging and deployment
@@ -87,19 +108,16 @@ AWS Lambda NodeJS runtime requires a flat folder with all dependencies including
 
 ```yaml
 ...
-    GetUsersFunction:
-    Type: AWS::Serverless::Function
+GetTenderStatusesFunction:
     Properties:
       CodeUri: src/
-      ...
+      Handler: integration.getTenderStatuses
+      Runtime: nodejs10.x
+    Type: AWS::Serverless::Function
+...
 ```
 
-Firstly, we need a `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
-
-```bash
-aws s3 mb s3://BUCKET_NAME
-```
-As long as the pipeline has been built correctly using the Terraform a simple git commit and push to the correct repo/branch should trigger the code being built/deployed to the API Gateway.
+As long as the pipeline has been built/configured correctly using the Terraform a simple git commit and push to the correct repo/branch should trigger the cloud formation stack being constructed and the code being built/deployed to the API Gateway.
 
 > **See [Serverless Application Model (SAM) HOWTO Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html) for more details in how to get started.**
 
